@@ -564,7 +564,8 @@ dependencies = [
 [[package]]
 name = "systemctl"
 version = "0.4.0"
-source = "git+https://github.com/Andeskjerf/systemctl#6dbe07dc2bb0b4d6ac9b2edd8cc3cde5340f3655"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6c590fbac38f010500341b64c0214bdcd0d4a35be1a9d9b477e854c9353fe111"
 dependencies = [
  "bon",
  "itertools",

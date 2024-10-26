@@ -7,4 +7,4 @@ edition = "2021"
 crossterm = "0.28.1"
 ratatui = { version = "0.29.0", features = [ "unstable-widget-ref" ] }
 sysinfo = "0.32.0"
-systemctl = { git = "https://github.com/Andeskjerf/systemctl" }
+systemctl = "0.4.0"
