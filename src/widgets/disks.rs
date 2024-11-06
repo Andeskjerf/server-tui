@@ -1,0 +1,27 @@
+use std::process::Command;
+
+use ratatui::text::Line;
+use ratatui::{
+    buffer::Buffer,
+    layout::{Constraint, Layout, Rect},
+    style::{Style, Stylize},
+    widgets::{Block, Paragraph, Widget, WidgetRef},
+};
+
+pub struct DisksWidget {}
+
+impl DisksWidget {
+    pub fn new() -> Self {
+        Self {}
+    }
+
+    pub fn poll(&mut self) {}
+}
+
+impl WidgetRef for DisksWidget {
+    fn render_ref(&self, area: Rect, buf: &mut Buffer) {
+        let block = Block::bordered().title_bottom(Line::from(" Disks ").blue().bold());
+
+        block.render(area, buf);
+    }
+}
