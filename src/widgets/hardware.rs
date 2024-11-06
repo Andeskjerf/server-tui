@@ -1,4 +1,4 @@
-use sysinfo::{Components, System};
+use sysinfo::System;
 
 use ratatui::{
     buffer::Buffer,
@@ -30,7 +30,7 @@ impl HardwareUsageWidget {
         self.system.refresh_all();
 
         let memory_percentage =
-            (self.system.available_memory() / self.system.total_memory()) as f64 * 100.0;
+            (self.system.used_memory() as f64 / self.system.total_memory() as f64) * 100.0;
         self.cpu.push(self.system.global_cpu_usage() as f64);
         self.memory.push(memory_percentage);
 
