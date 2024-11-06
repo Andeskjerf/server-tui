@@ -1,3 +1,5 @@
+use std::collections::VecDeque;
+
 use ratatui::text::Line;
 use ratatui::widgets::{List, ListItem, ListState, StatefulWidget};
 use ratatui::{
@@ -11,8 +13,9 @@ use systemd::JournalRecord;
 
 pub struct LogWidget {
     journal: Journal,
-    records: Vec<JournalRecord>,
+    records: VecDeque<JournalRecord>,
     list_state: ListState,
+    max_records: usize,
 }
 
 impl LogWidget {
@@ -24,14 +27,18 @@ impl LogWidget {
                 .system(true)
                 .open()
                 .expect("unable to open journal for reading"),
-            records: vec![],
+            records: VecDeque::new(),
             list_state: ListState::default(),
+            max_records: 100,
         }
     }
 
     pub fn poll(&mut self) {
         while let Ok(Some(res)) = self.journal.next_entry() {
-            self.records.push(res);
+            self.records.push_back(res);
+            if self.records.len() > self.max_records {
+                self.records.pop_front();
+            }
         }
     }
 
