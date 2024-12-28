@@ -3,3 +3,4 @@ pub mod systemctl_stats;
 pub mod hardware;
 pub mod disks;
 pub mod journalctl;
+pub mod current_status;

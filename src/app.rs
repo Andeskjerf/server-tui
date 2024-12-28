@@ -1,4 +1,4 @@
-use std::{io, time::Duration};
+use std::{io, sync::Arc, time::Duration};
 
 use crossterm::event::{self, poll, KeyCode, KeyEventKind};
 use ratatui::{
@@ -6,31 +6,34 @@ use ratatui::{
     widgets::WidgetRef,
     DefaultTerminal,
 };
+use tokio::sync::Mutex;
 
 use crate::widgets::{
-    hardware::HardwareUsageWidget, journalctl::LogWidget, podman::PodmanWidget,
-    systemctl_stats::SystemctlWidget,
+    current_status::CurrentStatusWidget, hardware::HardwareUsageWidget, journalctl::LogWidget,
+    podman::PodmanWidget, systemctl_stats::SystemctlWidget,
 };
 
 pub struct App {
     terminal: DefaultTerminal,
     hw_usage: HardwareUsageWidget,
-    logs: LogWidget,
+    status: CurrentStatusWidget,
+    // logs: LogWidget,
 }
 
 impl App {
-    pub fn new(mut terminal: DefaultTerminal) -> io::Result<Self> {
+    pub fn new(mut terminal: DefaultTerminal, queue: Arc<Mutex<Vec<String>>>) -> io::Result<Self> {
         terminal.clear()?;
         Ok(Self {
             terminal,
             hw_usage: HardwareUsageWidget::new(),
-            logs: LogWidget::new(),
+            status: CurrentStatusWidget::new(queue),
+            // logs: LogWidget::new(),
         })
     }
 
     pub fn run(&mut self) -> io::Result<()> {
         loop {
-            self.logs.poll();
+            // self.logs.poll();
             self.hw_usage.poll_usage();
 
             self.draw()?;
@@ -72,7 +75,8 @@ impl App {
                 blocks[i].render_ref(status_areas[i], frame.buffer_mut());
             }
 
-            self.logs.render(log_area, frame.buffer_mut());
+            // self.logs.render(log_area, frame.buffer_mut());
+            self.status.render_ref(log_area, frame.buffer_mut());
             self.hw_usage.render_ref(hardware_area, frame.buffer_mut());
         })?;
 
