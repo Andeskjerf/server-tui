@@ -1,16 +1,18 @@
-use std::{env::temp_dir, path::Path, sync::Arc};
+use std::{collections::HashMap, env::temp_dir, path::Path, sync::Arc};
 
 use tokio::{fs, io::AsyncReadExt, net::UnixListener, sync::Mutex};
 
+use crate::models::socket_message::SocketMessage;
+
 pub struct SocketService {
-    pub queue: Arc<Mutex<Vec<String>>>,
+    pub queue: Arc<Mutex<HashMap<String, String>>>,
     socket_name: String,
 }
 
 impl SocketService {
     pub fn new(socket_name: &str) -> Self {
         Self {
-            queue: Arc::new(Mutex::new(vec![])),
+            queue: Arc::new(Mutex::new(HashMap::new())),
             socket_name: socket_name.to_string(),
         }
     }
@@ -28,26 +30,30 @@ impl SocketService {
     }
 
     // TODO: needs to handle errors / bad input / kick out clients
+    // FIXME: very nested
     pub async fn run(&self) {
         let listener = self.init_socket().await;
-
-        while let Ok((mut stream, _)) = listener.accept().await {
-            let mut buffer = vec![0u8; 1024];
-            {
-                let queue = Arc::clone(&self.queue);
-                tokio::spawn(async move {
-                    println!("new thread spawned");
-                    match stream.read(&mut buffer).await {
-                        Ok(n) => {
-                            println!("read {n} bytes");
-                            if let Ok(string) = String::from_utf8(buffer) {
-                                queue.lock().await.push(string);
+        let queue = Arc::clone(&self.queue);
+        tokio::spawn(async move {
+            while let Ok((mut stream, _)) = listener.accept().await {
+                let mut buffer = vec![0u8; 1024];
+                {
+                    let queue = Arc::clone(&queue);
+                    tokio::spawn(async move {
+                        println!("new thread spawned");
+                        match stream.read(&mut buffer).await {
+                            Ok(n) => {
+                                println!("read {n} bytes");
+                                if let Ok(string) = String::from_utf8(buffer) {
+                                    let msg: SocketMessage = serde_json::from_str(&string).unwrap();
+                                    queue.lock().await.insert(msg.title, msg.status);
+                                }
                             }
+                            Err(err) => println!("err: {err}"),
                         }
-                        Err(err) => println!("err: {err}"),
-                    }
-                });
+                    });
+                }
             }
-        }
+        });
     }
 }

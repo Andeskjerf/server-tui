@@ -1,4 +1,4 @@
-use std::{io, sync::Arc, time::Duration};
+use std::{collections::HashMap, io, sync::Arc, time::Duration};
 
 use crossterm::event::{self, poll, KeyCode, KeyEventKind};
 use ratatui::{
@@ -8,10 +8,10 @@ use ratatui::{
 };
 use tokio::sync::Mutex;
 
-use crate::widgets::{
+use crate::{utils, widgets::{
     current_status::CurrentStatusWidget, hardware::HardwareUsageWidget, journalctl::LogWidget,
     podman::PodmanWidget, systemctl_stats::SystemctlWidget,
-};
+}};
 
 pub struct App {
     terminal: DefaultTerminal,
@@ -21,7 +21,10 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(mut terminal: DefaultTerminal, queue: Arc<Mutex<Vec<String>>>) -> io::Result<Self> {
+    pub fn new(
+        mut terminal: DefaultTerminal,
+        queue: Arc<Mutex<HashMap<String, String>>>,
+    ) -> io::Result<Self> {
         terminal.clear()?;
         Ok(Self {
             terminal,
@@ -31,9 +34,10 @@ impl App {
         })
     }
 
-    pub fn run(&mut self) -> io::Result<()> {
+    pub async fn run(&mut self) -> io::Result<()> {
         loop {
             // self.logs.poll();
+            self.status.process_queue().await;
             self.hw_usage.poll_usage();
 
             self.draw()?;
@@ -50,7 +54,7 @@ impl App {
 
     fn draw(&mut self) -> io::Result<()> {
         self.terminal.draw(|frame| {
-            let master_layout = make_layout(Direction::Vertical, 2);
+            let master_layout = utils::layout::make_layout(Direction::Vertical, 2);
 
             let layout = Layout::default()
                 .direction(Direction::Horizontal)
@@ -82,11 +86,4 @@ impl App {
 
         Ok(())
     }
-}
-
-fn make_layout(dir: Direction, count: u16) -> Layout {
-    let percentage = 100 / count;
-    Layout::default()
-        .direction(dir)
-        .constraints(vec![Constraint::Percentage(percentage); count as usize])
 }

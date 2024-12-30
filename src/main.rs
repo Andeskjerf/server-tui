@@ -5,20 +5,20 @@ use services::socket::SocketService;
 
 mod api;
 mod app;
+mod models;
 mod services;
+mod utils;
 mod widgets;
 
 #[tokio::main]
 async fn main() -> io::Result<()> {
     let socket = SocketService::new("server-tui.socket");
     let queue = Arc::clone(&socket.queue);
-    tokio::spawn(async move {
-        socket.run().await;
-    });
+    socket.run().await;
 
     let terminal = ratatui::init();
     let mut app = App::new(terminal, queue)?;
-    let result = app.run();
+    let result = app.run().await;
 
     ratatui::restore();
     result
