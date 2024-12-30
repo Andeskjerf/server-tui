@@ -45,7 +45,11 @@ impl SocketService {
                             Ok(n) => {
                                 println!("read {n} bytes");
                                 if let Ok(string) = String::from_utf8(buffer) {
-                                    let msg: SocketMessage = serde_json::from_str(&string).unwrap();
+                                    let msg: SocketMessage = serde_json::from_str(
+                                        // remove any additional zeros from the buffer
+                                        string.trim_end_matches(char::from(0)),
+                                    )
+                                    .unwrap();
                                     queue.lock().await.insert(msg.title, msg.status);
                                 }
                             }
