@@ -56,7 +56,13 @@ impl WidgetRef for CurrentStatusWidget {
             .collect::<Vec<(Paragraph, Paragraph)>>();
 
         (0..paragraphs.len()).for_each(|i| {
-            paragraphs.get(i).unwrap().0.clone().render(layout[i], buf);
+            let sub_layout = utils::layout::make_layout(Direction::Vertical, 2).flex(Flex::Center);
+            let areas: [Rect; 2] = sub_layout.areas(layout[i]);
+            if let Some(elems) = paragraphs.get(i) {
+                let elems = elems.clone();
+                elems.0.render(areas[0], buf);
+                elems.1.render(areas[1], buf);
+            }
         });
 
         block.render(area, buf);
