@@ -40,10 +40,8 @@ impl SocketService {
                 {
                     let queue = Arc::clone(&queue);
                     tokio::spawn(async move {
-                        println!("new thread spawned");
                         match stream.read(&mut buffer).await {
                             Ok(n) => {
-                                println!("read {n} bytes");
                                 if let Ok(string) = String::from_utf8(buffer) {
                                     let msg: SocketMessage = serde_json::from_str(
                                         // remove any additional zeros from the buffer
