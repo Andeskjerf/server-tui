@@ -49,7 +49,7 @@ impl ProcessWatcher {
                         None => continue,
                     };
 
-                    if exe.contains(&process_name) {
+                    if exe.to_lowercase().contains(&process_name.to_lowercase()) {
                         status
                             .lock()
                             .await
