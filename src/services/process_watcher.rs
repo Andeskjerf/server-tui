@@ -49,11 +49,14 @@ impl ProcessWatcher {
                         None => continue,
                     };
 
-                    if exe.to_lowercase().contains(&process_name.to_lowercase()) {
+                    let name = process.name().to_str().unwrap();
+
+                    if name.to_lowercase().contains(&process_name.to_lowercase()) {
                         status
                             .lock()
                             .await
                             .insert(process_name.clone(), chrono::Utc::now().timestamp());
+                        println!("{name}");
                         break;
                     }
                 }
