@@ -56,7 +56,6 @@ impl ProcessWatcher {
                             .lock()
                             .await
                             .insert(process_name.clone(), chrono::Utc::now().timestamp());
-                        println!("{name}");
                         break;
                     }
                 }
