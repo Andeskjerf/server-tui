@@ -19,7 +19,8 @@ async fn main() -> io::Result<()> {
     socket.run().await;
 
     process_watcher.cleanup_task();
-    env::args().for_each(|arg| {
+    // we don't wanna watch our own process
+    env::args().skip(1).for_each(|arg| {
         process_watcher.watch_process(arg);
     });
 
