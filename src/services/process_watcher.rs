@@ -5,7 +5,7 @@ use tokio::{sync::Mutex, time::sleep};
 
 pub struct ProcessWatcher {
     system: Arc<Mutex<System>>,
-    status: Arc<Mutex<HashMap<String, i64>>>,
+    pub status: Arc<Mutex<HashMap<String, i64>>>,
 }
 
 impl ProcessWatcher {
@@ -18,8 +18,8 @@ impl ProcessWatcher {
         }
     }
 
-    fn cleanup_task(&self) {
-        const CLEANUP_INTERVAL: u32 = 1;
+    pub fn cleanup_task(&self) {
+        const CLEANUP_INTERVAL: u8 = 2;
         let status = Arc::clone(&self.status);
         tokio::spawn(async move {
             loop {
