@@ -8,10 +8,13 @@ use ratatui::{
 };
 use tokio::sync::Mutex;
 
-use crate::{utils, widgets::{
-    current_status::CurrentStatusWidget, hardware::HardwareUsageWidget, journalctl::LogWidget,
-    podman::PodmanWidget, systemctl_stats::SystemctlWidget,
-}};
+use crate::{
+    utils,
+    widgets::{
+        current_status::CurrentStatusWidget, hardware::HardwareUsageWidget, journalctl::LogWidget,
+        podman::PodmanWidget, systemctl_stats::SystemctlWidget,
+    },
+};
 
 pub struct App {
     terminal: DefaultTerminal,
@@ -23,13 +26,14 @@ pub struct App {
 impl App {
     pub fn new(
         mut terminal: DefaultTerminal,
-        queue: Arc<Mutex<HashMap<String, String>>>,
+        socket_messages: Arc<Mutex<HashMap<String, String>>>,
+        process_updates: Arc<Mutex<HashMap<String, i64>>>,
     ) -> io::Result<Self> {
         terminal.clear()?;
         Ok(Self {
             terminal,
             hw_usage: HardwareUsageWidget::new(),
-            status: CurrentStatusWidget::new(queue),
+            status: CurrentStatusWidget::new(socket_messages, process_updates),
             // logs: LogWidget::new(),
         })
     }
