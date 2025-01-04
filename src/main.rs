@@ -16,13 +16,15 @@ async fn main() -> io::Result<()> {
     let process_watcher = ProcessWatcher::new();
     let socket_messages = Arc::clone(&socket.queue);
     let process_updates = Arc::clone(&process_watcher.status);
-    socket.run().await;
 
+    socket.run().await;
+    process_watcher.run();
     process_watcher.cleanup_task();
+
     // we don't wanna watch our own process
-    env::args().skip(1).for_each(|arg| {
-        process_watcher.watch_process(arg);
-    });
+    for arg in env::args().skip(1) {
+        process_watcher.watch_process(&arg).await;
+    }
 
     let terminal = ratatui::init();
     let mut app = App::new(terminal, socket_messages, process_updates)?;

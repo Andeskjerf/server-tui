@@ -5,6 +5,7 @@ use tokio::{sync::Mutex, time::sleep};
 
 pub struct ProcessWatcher {
     system: Arc<Mutex<System>>,
+    to_watch: Arc<Mutex<Vec<String>>>,
     pub status: Arc<Mutex<HashMap<String, i64>>>,
 }
 
@@ -14,6 +15,7 @@ impl ProcessWatcher {
             system: Arc::new(Mutex::new(System::new_with_specifics(
                 RefreshKind::nothing().with_processes(ProcessRefreshKind::everything()),
             ))),
+            to_watch: Arc::new(Mutex::new(vec![])),
             status: Arc::new(Mutex::new(HashMap::new())),
         }
     }
@@ -35,9 +37,14 @@ impl ProcessWatcher {
         });
     }
 
-    pub fn watch_process(&self, process_name: String) {
+    pub async fn watch_process(&self, name: &str) {
+        self.to_watch.lock().await.push(name.to_owned());
+    }
+
+    pub fn run(&self) {
         let status = Arc::clone(&self.status);
         let system = Arc::clone(&self.system);
+        let to_watch = Arc::clone(&self.to_watch);
         tokio::spawn(async move {
             loop {
                 let mut lock = system.lock().await;
@@ -50,12 +57,21 @@ impl ProcessWatcher {
                     };
 
                     let name = process.name().to_str().unwrap();
+                    let mut found = false;
 
-                    if name.to_lowercase().contains(&process_name.to_lowercase()) {
-                        status
-                            .lock()
-                            .await
-                            .insert(process_name.clone(), chrono::Utc::now().timestamp());
+                    for elem in to_watch.lock().await.iter() {
+                        if name.to_lowercase().contains(&elem.to_lowercase()) {
+                            status
+                                .lock()
+                                .await
+                                .insert(elem.clone(), chrono::Utc::now().timestamp());
+                            found = true;
+                            println!("{elem}, {name}, {exe}");
+                            break;
+                        }
+                    }
+
+                    if found {
                         break;
                     }
                 }
