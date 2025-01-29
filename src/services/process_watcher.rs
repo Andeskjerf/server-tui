@@ -5,7 +5,10 @@ use std::{
 };
 
 use crate::{
-    models::{event_bus_message::EventBusMessage, event_type::EventType},
+    models::{
+        event_bus_field_type::EventFieldType, event_bus_message::EventBusMessage,
+        event_type::EventType,
+    },
     traits::runnable::Runnable,
 };
 use sysinfo::{ProcessRefreshKind, RefreshKind, System};
@@ -56,8 +59,8 @@ impl ProcessWatcher {
                     EVENT_TOPIC,
                     EventBusMessage::new(
                         watch_lock.get(pos).unwrap(),
-                        "Running",
                         EventType::Process,
+                        Some(vec![(EventFieldType::Description, "Running")]),
                     )
                     .format_bytes(),
                 );

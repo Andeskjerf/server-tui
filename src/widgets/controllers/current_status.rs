@@ -6,7 +6,10 @@ use std::{
 };
 
 use crate::{
-    models::{event_bus_message::EventBusMessage, event_type::EventType},
+    models::{
+        event_bus_field_type::EventFieldType, event_bus_message::EventBusMessage,
+        event_type::EventType,
+    },
     services::{event_bus::EventBus, process_watcher, socket},
 };
 
@@ -67,8 +70,8 @@ impl CurrentStatusController {
                         DEFAULT_STATUS_TITLE.to_string(),
                         EventBusMessage::new(
                             DEFAULT_STATUS_TITLE,
-                            DEFAULT_STATUS_DESC,
                             EventType::Process,
+                            Some(vec![(EventFieldType::Description, DEFAULT_STATUS_DESC)]),
                         ),
                     );
                 }
@@ -88,7 +91,7 @@ impl CurrentStatusController {
 
         // remove if the message says it's SOCKET_DONE_TEXT and it's a socket
         if *msg.event_type() == EventType::Socket
-            && msg.description().to_lowercase() == socket::SOCKET_DONE_TEXT
+            && msg.get_field(EventFieldType::Description).to_lowercase() == socket::SOCKET_DONE_TEXT
             && lock.contains_key(msg.title())
         {
             lock.remove(msg.title());

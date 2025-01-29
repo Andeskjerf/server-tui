@@ -8,7 +8,8 @@ use tokio::sync::Mutex as TokioMutex;
 use tokio::{fs, io::AsyncReadExt, net::UnixListener};
 
 use crate::models::{
-    event_bus_message::EventBusMessage, event_type::EventType, socket_message::SocketMessage,
+    event_bus_field_type::EventFieldType, event_bus_message::EventBusMessage,
+    event_type::EventType, socket_message::SocketMessage,
 };
 use crate::traits::runnable::Runnable;
 
@@ -54,7 +55,12 @@ impl SocketService {
 
             event_bus.lock().unwrap().publish(
                 EVENT_TOPIC,
-                EventBusMessage::new(&msg.title, &msg.status, EventType::Socket).format_bytes(),
+                EventBusMessage::new(
+                    &msg.title,
+                    EventType::Socket,
+                    Some(vec![(EventFieldType::Description, &msg.status)]),
+                )
+                .format_bytes(),
             );
         }
     }

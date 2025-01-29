@@ -10,6 +10,7 @@ use ratatui::{
     widgets::{Block, Widget, WidgetRef},
 };
 
+use crate::models::event_bus_field_type::EventFieldType;
 use crate::services::event_bus::EventBus;
 use crate::utils;
 
@@ -43,7 +44,8 @@ impl WidgetRef for CurrentStatusWidget {
                     Paragraph::new(v.title())
                         .bold()
                         .alignment(Alignment::Center),
-                    Paragraph::new(v.description()).alignment(Alignment::Center),
+                    Paragraph::new(v.get_field(EventFieldType::Description))
+                        .alignment(Alignment::Center),
                 )
             })
             .collect::<Vec<(Paragraph, Paragraph)>>();

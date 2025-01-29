@@ -10,14 +10,14 @@ use ratatui::{
     widgets::WidgetRef,
     DefaultTerminal,
 };
-// use tokio::sync::Mutex;
 
 use crate::{
     services::event_bus::EventBus,
     utils,
     widgets::{
-        current_status::CurrentStatusWidget, hardware::HardwareUsageWidget, journalctl::LogWidget,
-        podman::PodmanWidget, systemctl_stats::SystemctlWidget,
+        current_status::CurrentStatusWidget, datetime::DateTimeWidget,
+        hardware::HardwareUsageWidget, journalctl::LogWidget, podman::PodmanWidget,
+        systemctl_stats::SystemctlWidget,
     },
 };
 
@@ -26,6 +26,7 @@ pub struct App {
     event_bus: Arc<Mutex<EventBus>>,
     hw_usage: HardwareUsageWidget,
     status: CurrentStatusWidget,
+    datetime: DateTimeWidget,
     // logs: LogWidget,
 }
 
@@ -40,6 +41,7 @@ impl App {
             event_bus: Arc::clone(&event_bus),
             hw_usage: HardwareUsageWidget::new(Arc::clone(&event_bus)),
             status: CurrentStatusWidget::new(Arc::clone(&event_bus)).await,
+            datetime: DateTimeWidget::new(Arc::clone(&event_bus)),
             // logs: LogWidget::new(),
         })
     }
@@ -47,8 +49,7 @@ impl App {
     pub async fn run(&mut self) -> io::Result<()> {
         loop {
             // self.logs.poll();
-            // self.status.process_queue().await;
-            self.hw_usage.poll_usage();
+            // self.hw_usage.poll_usage();
 
             self.draw()?;
 
