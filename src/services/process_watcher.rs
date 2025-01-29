@@ -12,7 +12,7 @@ use crate::{
     traits::runnable::Runnable,
 };
 use log::trace;
-use sysinfo::{ProcessRefreshKind, RefreshKind, System};
+use sysinfo::{ProcessRefreshKind, RefreshKind, System, UpdateKind};
 
 use super::event_bus::EventBus;
 
@@ -41,7 +41,11 @@ impl ProcessWatcher {
         to_watch: Arc<Mutex<Vec<String>>>,
     ) {
         let mut lock = system.lock().unwrap();
-        (*lock).refresh_processes(sysinfo::ProcessesToUpdate::All, true);
+        (*lock).refresh_processes_specifics(
+            sysinfo::ProcessesToUpdate::All,
+            true,
+            ProcessRefreshKind::nothing().with_cmd(UpdateKind::Always),
+        );
         let mut count_found = 0;
         for process in (*lock).processes().values() {
             let watch_lock = to_watch.lock().unwrap();
@@ -86,7 +90,7 @@ impl Runnable for ProcessWatcher {
                     Arc::clone(&system),
                     Arc::clone(&to_watch),
                 );
-                sleep(Duration::from_millis(100));
+                sleep(Duration::from_millis(1000));
             }
         });
     }
