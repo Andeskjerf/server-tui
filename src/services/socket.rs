@@ -2,6 +2,8 @@ use std::{
     env::temp_dir,
     path::Path,
     sync::{Arc, Mutex},
+    thread::sleep,
+    time::{self, Duration},
 };
 
 use tokio::sync::Mutex as TokioMutex;
@@ -81,6 +83,7 @@ impl SocketService {
                     }
                 });
             }
+            sleep(Duration::from_millis(100));
         }
     }
 }
