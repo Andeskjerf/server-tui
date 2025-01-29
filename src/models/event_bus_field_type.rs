@@ -3,6 +3,7 @@ pub enum EventFieldType {
     Description,
     Memory,
     Cpu,
+    Timestamp,
 }
 
 impl EventFieldType {
@@ -11,6 +12,7 @@ impl EventFieldType {
             "description" => EventFieldType::Description,
             "memory" => EventFieldType::Memory,
             "cpu" => EventFieldType::Cpu,
+            "timestamp" => EventFieldType::Timestamp,
             &_ => panic!("invalid field type, got {input}"),
         }
     }
@@ -20,6 +22,7 @@ impl EventFieldType {
             EventFieldType::Description => "description",
             EventFieldType::Memory => "memory",
             EventFieldType::Cpu => "cpu",
+            EventFieldType::Timestamp => "timestamp",
         }
     }
 }

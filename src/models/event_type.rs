@@ -5,6 +5,7 @@ pub enum EventType {
     Socket = 0,
     Process = 1,
     HWusage = 2,
+    Timestamp = 3,
 }
 
 impl EventType {
@@ -13,7 +14,8 @@ impl EventType {
             0 => EventType::Socket,
             1 => EventType::Process,
             2 => EventType::HWusage,
-            3_u8..=u8::MAX => panic!("invalid event"),
+            3 => EventType::Timestamp,
+            4_u8..=u8::MAX => panic!("invalid event"),
         }
     }
 
@@ -22,6 +24,7 @@ impl EventType {
             EventType::Socket => 0,
             EventType::Process => 1,
             EventType::HWusage => 2,
+            EventType::Timestamp => 3,
         }
     }
 }

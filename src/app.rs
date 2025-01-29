@@ -16,7 +16,7 @@ use crate::{
     utils,
     widgets::{
         current_status::CurrentStatusWidget, datetime::DateTimeWidget,
-        hardware::HardwareUsageWidget, podman::PodmanWidget, systemctl_stats::SystemctlWidget,
+        hardware::HardwareUsageWidget, podman::PodmanWidget,
     },
 };
 
@@ -25,6 +25,7 @@ pub struct App {
     hw_usage: HardwareUsageWidget,
     status: CurrentStatusWidget,
     datetime: DateTimeWidget,
+    podman: PodmanWidget,
     // logs: LogWidget,
 }
 
@@ -39,6 +40,7 @@ impl App {
             hw_usage: HardwareUsageWidget::new(Arc::clone(&event_bus)),
             status: CurrentStatusWidget::new(Arc::clone(&event_bus)).await,
             datetime: DateTimeWidget::new(Arc::clone(&event_bus)),
+            podman: PodmanWidget::new(),
             // logs: LogWidget::new(),
         })
     }
@@ -71,20 +73,25 @@ impl App {
                 .direction(Direction::Vertical)
                 .constraints(vec![Constraint::Percentage(50), Constraint::Percentage(50)]);
 
-            let blocks: Vec<Box<dyn WidgetRef>> = vec![
-                Box::new(SystemctlWidget::new()),
-                Box::new(PodmanWidget::new()),
-            ];
+            // let blocks: Vec<Box<dyn WidgetRef>> = vec![
+            //     Box::new(SystemctlWidget::new()),
+            //     Box::new(PodmanWidget::new()),
+            // ];
 
             let [upper_area, hardware_area] = master_layout.areas(frame.area());
             let [stat_areas, log_area]: [Rect; 2] = layout.areas(upper_area);
             let status_areas: [Rect; 2] = layout_ver.areas(stat_areas);
 
-            assert!(blocks.len() == status_areas.len());
+            // assert!(blocks.len() == status_areas.len());
 
-            for i in 0..blocks.len() {
-                blocks[i].render_ref(status_areas[i], frame.buffer_mut());
-            }
+            // for i in 0..blocks.len() {
+            //     blocks[i].render_ref(status_areas[i], frame.buffer_mut());
+            // }
+
+            self.datetime
+                .render_ref(status_areas[0], frame.buffer_mut());
+
+            self.podman.render_ref(status_areas[1], frame.buffer_mut());
 
             // self.logs.render(log_area, frame.buffer_mut());
             self.status.render_ref(log_area, frame.buffer_mut());

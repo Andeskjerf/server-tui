@@ -9,8 +9,8 @@ use crate::traits::runnable::Runnable;
 use app::App;
 use log::LevelFilter;
 use services::{
-    event_bus::EventBus, hw_usage::HwUsageService, process_watcher::ProcessWatcher,
-    socket::SocketService,
+    datetime::DateTimeService, event_bus::EventBus, hw_usage::HwUsageService,
+    process_watcher::ProcessWatcher, socket::SocketService,
 };
 use simplelog::{CombinedLogger, Config, WriteLogger};
 
@@ -33,13 +33,12 @@ async fn main() -> io::Result<()> {
 
     let event_bus = Arc::new(Mutex::new(EventBus::new()));
 
-    let mut to_watch = env::args().skip(1).collect::<Vec<String>>();
-    to_watch.push("htop".to_string());
-    to_watch.push("btop".to_string());
+    let to_watch = env::args().skip(1).collect::<Vec<String>>();
     let services: Vec<Box<dyn Runnable>> = vec![
         Box::new(SocketService::new(Arc::clone(&event_bus), "server-tui.sock").await),
         Box::new(ProcessWatcher::new(Arc::clone(&event_bus), to_watch)),
         Box::new(HwUsageService::new(Arc::clone(&event_bus))),
+        Box::new(DateTimeService::new(Arc::clone(&event_bus))),
     ];
 
     for s in services {

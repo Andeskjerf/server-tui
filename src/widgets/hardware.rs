@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use log::{info, trace};
+use log::trace;
 use ratatui::{
     buffer::Buffer,
     layout::Rect,

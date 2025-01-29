@@ -5,7 +5,7 @@ use std::{
     time::Duration,
 };
 
-use log::{info, trace};
+use log::trace;
 
 use crate::{
     models::{

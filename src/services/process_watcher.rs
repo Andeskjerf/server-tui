@@ -11,7 +11,7 @@ use crate::{
     },
     traits::runnable::Runnable,
 };
-use log::{info, trace};
+use log::trace;
 use sysinfo::{ProcessRefreshKind, RefreshKind, System};
 
 use super::event_bus::EventBus;
