@@ -87,7 +87,7 @@ impl CurrentStatusController {
 
         // remove if the message says it's done
         if *msg.event_type() == EventType::Socket
-            && msg.description().to_lowercase() == "done"
+            && msg.description().to_lowercase() == socket::SOCKET_DONE_TEXT
             && lock.contains_key(msg.title())
         {
             lock.remove(msg.title());

@@ -15,6 +15,7 @@ use crate::traits::runnable::Runnable;
 use super::event_bus::EventBus;
 
 pub const EVENT_TOPIC: &str = "socket_service";
+pub const SOCKET_DONE_TEXT: &str = "done";
 
 pub struct SocketService {
     listener: Arc<TokioMutex<UnixListener>>,
@@ -69,12 +70,8 @@ impl SocketService {
                 let event_bus = Arc::clone(&event_bus);
                 tokio::spawn(async move {
                     match stream.read(&mut buffer).await {
-                        Err(err) => {
-                            println!("err: {err}");
-                        }
-                        Ok(_) => {
-                            SocketService::process_message(buffer, event_bus);
-                        }
+                        Err(err) => println!("err: {err}"),
+                        Ok(_) => SocketService::process_message(buffer, event_bus),
                     }
                 });
             }
