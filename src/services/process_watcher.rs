@@ -4,7 +4,7 @@ use std::{
     time::Duration,
 };
 
-use crate::traits::runnable::Runnable;
+use crate::{traits::runnable::Runnable, widgets::controllers::current_status};
 use sysinfo::{ProcessRefreshKind, RefreshKind, System};
 
 use super::event_bus::EventBus;
@@ -35,12 +35,12 @@ impl ProcessWatcher {
         (*lock).refresh_processes(sysinfo::ProcessesToUpdate::All, true);
         for elem in to_watch.lock().unwrap().iter() {
             for process in (*lock).processes().values() {
-                let name = process.name().to_str().unwrap();
-                if name.to_lowercase().contains(&elem.to_lowercase()) {
+                let name = process.name().to_str().unwrap().to_lowercase();
+                if name.contains(&elem.to_lowercase()) {
                     event_bus
                         .lock()
                         .unwrap()
-                        .publish("process_watcher", format!("add,{elem}").as_bytes().to_vec());
+                        .publish(current_status::EVENT_TOPIC, elem.as_bytes().to_vec());
                     break;
                 }
             }
