@@ -1,4 +1,8 @@
-use std::{collections::HashMap, io, sync::Arc, time::Duration};
+use std::{
+    io,
+    sync::{Arc, Mutex},
+    time::Duration,
+};
 
 use crossterm::event::{self, poll, KeyCode, KeyEventKind};
 use ratatui::{
@@ -6,9 +10,10 @@ use ratatui::{
     widgets::WidgetRef,
     DefaultTerminal,
 };
-use tokio::sync::Mutex;
+// use tokio::sync::Mutex;
 
 use crate::{
+    services::event_bus::EventBus,
     utils,
     widgets::{
         current_status::CurrentStatusWidget, hardware::HardwareUsageWidget, journalctl::LogWidget,
@@ -18,22 +23,23 @@ use crate::{
 
 pub struct App {
     terminal: DefaultTerminal,
+    event_bus: Arc<Mutex<EventBus>>,
     hw_usage: HardwareUsageWidget,
     status: CurrentStatusWidget,
     // logs: LogWidget,
 }
 
 impl App {
-    pub fn new(
+    pub async fn new(
         mut terminal: DefaultTerminal,
-        socket_messages: Arc<Mutex<HashMap<String, String>>>,
-        process_updates: Arc<Mutex<HashMap<String, i64>>>,
+        event_bus: Arc<Mutex<EventBus>>,
     ) -> io::Result<Self> {
         terminal.clear()?;
         Ok(Self {
             terminal,
-            hw_usage: HardwareUsageWidget::new(),
-            status: CurrentStatusWidget::new(socket_messages, process_updates),
+            event_bus: Arc::clone(&event_bus),
+            hw_usage: HardwareUsageWidget::new(Arc::clone(&event_bus)),
+            status: CurrentStatusWidget::new(Arc::clone(&event_bus)).await,
             // logs: LogWidget::new(),
         })
     }
@@ -41,7 +47,7 @@ impl App {
     pub async fn run(&mut self) -> io::Result<()> {
         loop {
             // self.logs.poll();
-            self.status.process_queue().await;
+            // self.status.process_queue().await;
             self.hw_usage.poll_usage();
 
             self.draw()?;

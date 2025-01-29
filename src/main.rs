@@ -1,33 +1,36 @@
-use std::{env, io, sync::Arc};
+use std::{env, io, sync::{Arc, Mutex}};
 
+use crate::traits::runnable::Runnable;
 use app::App;
-use services::{process_watcher::ProcessWatcher, socket::SocketService};
+use services::{event_bus::EventBus, process_watcher::ProcessWatcher, socket::SocketService};
+// use tokio::sync::Mutex;
 
 mod api;
 mod app;
 mod models;
 mod services;
+mod traits;
 mod utils;
 mod widgets;
 
 #[tokio::main]
 async fn main() -> io::Result<()> {
-    let socket = SocketService::new("server-tui.sock");
-    let process_watcher = ProcessWatcher::new();
-    let socket_messages = Arc::clone(&socket.queue);
-    let process_updates = Arc::clone(&process_watcher.status);
+    let event_bus = Arc::new(Mutex::new(EventBus::new()));
 
-    socket.run().await;
-    process_watcher.run();
-    process_watcher.cleanup_task();
+    let services: Vec<Box<dyn Runnable>> = vec![
+        Box::new(SocketService::new(Arc::clone(&event_bus), "server-tui.sock").await),
+        Box::new(ProcessWatcher::new(
+            Arc::clone(&event_bus),
+            env::args().skip(1).collect::<Vec<String>>(),
+        )),
+    ];
 
-    // we don't wanna watch our own process
-    for arg in env::args().skip(1) {
-        process_watcher.watch_process(&arg).await;
+    for s in services {
+        s.run();
     }
 
     let terminal = ratatui::init();
-    let mut app = App::new(terminal, socket_messages, process_updates)?;
+    let mut app = App::new(terminal, Arc::clone(&event_bus)).await?;
     let result = app.run().await;
 
     ratatui::restore();

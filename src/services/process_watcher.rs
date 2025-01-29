@@ -1,21 +1,28 @@
-use std::{collections::HashMap, sync::Arc, time::Duration};
+use std::{
+    collections::HashMap, sync::{Arc, Mutex}, thread::sleep, time::Duration
+};
 
+use crate::traits::runnable::Runnable;
 use sysinfo::{ProcessRefreshKind, RefreshKind, System};
-use tokio::{sync::Mutex, time::sleep};
+// use tokio::time::sleep;
+
+use super::event_bus::EventBus;
 
 pub struct ProcessWatcher {
     system: Arc<Mutex<System>>,
     to_watch: Arc<Mutex<Vec<String>>>,
+    event_bus: Arc<Mutex<EventBus>>,
     pub status: Arc<Mutex<HashMap<String, i64>>>,
 }
 
 impl ProcessWatcher {
-    pub fn new() -> Self {
+    pub fn new(event_bus: Arc<Mutex<EventBus>>, processes_to_watch: Vec<String>) -> Self {
         Self {
             system: Arc::new(Mutex::new(System::new_with_specifics(
                 RefreshKind::nothing().with_processes(ProcessRefreshKind::everything()),
             ))),
-            to_watch: Arc::new(Mutex::new(vec![])),
+            event_bus,
+            to_watch: Arc::new(Mutex::new(processes_to_watch)),
             status: Arc::new(Mutex::new(HashMap::new())),
         }
     }
@@ -25,29 +32,31 @@ impl ProcessWatcher {
         let status = Arc::clone(&self.status);
         tokio::spawn(async move {
             loop {
-                let mut lock = status.lock().await;
+                let mut lock = status.lock().unwrap();
                 let now = chrono::Utc::now().timestamp();
                 (*lock).clone().into_iter().for_each(|(key, value)| {
                     if now - value >= CLEANUP_INTERVAL as i64 {
                         (*lock).remove(&key);
                     }
                 });
-                sleep(Duration::from_millis(100)).await;
+                sleep(Duration::from_millis(100));
             }
         });
     }
+}
 
-    pub async fn watch_process(&self, name: &str) {
-        self.to_watch.lock().await.push(name.to_owned());
-    }
-
-    pub fn run(&self) {
-        let status = Arc::clone(&self.status);
+impl Runnable for ProcessWatcher {
+    fn run(&self) {
+        // let status = Arc::clone(&self.status);
+        let event_bus = Arc::clone(&self.event_bus);
         let system = Arc::clone(&self.system);
         let to_watch = Arc::clone(&self.to_watch);
+
+        self.cleanup_task();
+
         tokio::spawn(async move {
             loop {
-                let mut lock = system.lock().await;
+                let mut lock = system.lock().unwrap();
                 (*lock).refresh_processes(sysinfo::ProcessesToUpdate::All, true);
                 for process in (*lock).processes().values() {
                     let exe = match process.exe() {
@@ -59,12 +68,16 @@ impl ProcessWatcher {
                     let name = process.name().to_str().unwrap();
                     let mut found = false;
 
-                    for elem in to_watch.lock().await.iter() {
+                    for elem in to_watch.lock().unwrap().iter() {
                         if name.to_lowercase().contains(&elem.to_lowercase()) {
-                            status
+                            // status
+                            //     .lock()
+                            //     .await
+                            //     .insert(elem.clone(), chrono::Utc::now().timestamp());
+                            event_bus
                                 .lock()
-                                .await
-                                .insert(elem.clone(), chrono::Utc::now().timestamp());
+                                .unwrap()
+                                .publish("process_watcher", "".as_bytes().to_vec());
                             found = true;
                             println!("{elem}, {name}, {exe}");
                             break;
@@ -75,7 +88,7 @@ impl ProcessWatcher {
                         break;
                     }
                 }
-                sleep(Duration::from_millis(100)).await;
+                sleep(Duration::from_millis(100));
             }
         });
     }

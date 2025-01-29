@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use ratatui::layout::{Alignment, Constraint, Direction, Flex};
 use ratatui::text::Line;
@@ -10,43 +10,65 @@ use ratatui::{
     style::Stylize,
     widgets::{Block, Widget, WidgetRef},
 };
-use tokio::sync::Mutex;
+// use tokio::sync::Mutex;
 
+use crate::services::event_bus::EventBus;
 use crate::utils;
 
 pub struct CurrentStatusWidget {
-    socket_messages: Arc<Mutex<HashMap<String, String>>>,
-    process_updates: Arc<Mutex<HashMap<String, i64>>>,
-    ongoing: HashMap<String, String>,
+    pub event_bus: Arc<Mutex<EventBus>>,
+    pub ongoing: Arc<Mutex<HashMap<String, String>>>,
 }
 
 impl CurrentStatusWidget {
-    pub fn new(
-        socket_messages: Arc<Mutex<HashMap<String, String>>>,
-        process_updates: Arc<Mutex<HashMap<String, i64>>>,
-    ) -> Self {
-        Self {
-            socket_messages,
-            process_updates,
-            ongoing: HashMap::new(),
+    pub async fn new(event_bus: Arc<Mutex<EventBus>>) -> Self {
+        let widget = Self {
+            event_bus,
+            ongoing: Arc::new(Mutex::new(HashMap::new())),
+        };
+
+        widget
+            .ongoing
+            .lock()
+            .unwrap()
+            .insert("All good!".to_string(), "Nothing happening".to_string());
+
+        {
+            let ongoing = Arc::clone(&widget.ongoing);
+            widget
+                .event_bus
+                .lock()
+                .unwrap()
+                .subscribe("process_watcher", move |data| {
+                    CurrentStatusWidget::on_event(Arc::clone(&ongoing), data);
+                });
         }
+
+        widget
     }
 
-    pub async fn process_queue(&mut self) {
-        self.ongoing.clear();
+    async fn on_event(ongoing: Arc<Mutex<HashMap<String, String>>>, data: Vec<u8>) {
+        let decoded = String::from_utf8(data).expect("unable to decode data");
+        let split = decoded.split(',').collect::<Vec<&str>>();
+        let mut lock = ongoing.lock().unwrap();
+        match split[0] {
+            "rm" => {
+                lock.remove(split[1]);
+            }
+            "add" => {
+                if lock.len() == 1 && lock.get("All good!").is_some() {
+                    lock.remove("All good!");
+                }
+                lock.insert(
+                    split[1].to_string(),
+                    "Update from ProcessWatcher".to_string(),
+                );
+            }
+            _ => println!("invalid command"),
+        }
 
-        // need to do this since we can't await lock during render
-        self.socket_messages.lock().await.iter().for_each(|(k, v)| {
-            self.ongoing.insert(k.clone(), v.clone());
-        });
-        self.process_updates.lock().await.iter().for_each(|(k, v)| {
-            self.ongoing
-                .insert(k.clone(), "Update from ProcessWatcher".to_string());
-        });
-
-        if self.ongoing.is_empty() {
-            self.ongoing
-                .insert("All good!".to_string(), "Nothing happening".to_string());
+        if lock.is_empty() {
+            lock.insert("All good!".to_string(), "Nothing happening".to_string());
         }
     }
 }
@@ -55,11 +77,11 @@ impl WidgetRef for CurrentStatusWidget {
     fn render_ref(&self, area: Rect, buf: &mut Buffer) {
         let block = Block::bordered().title_bottom(Line::from(" Status ").red().bold());
 
-        let layout = utils::layout::make_layout(Direction::Horizontal, self.ongoing.len() as u16)
+        let ongoing = self.ongoing.lock().unwrap();
+        let layout = utils::layout::make_layout(Direction::Horizontal, ongoing.len() as u16)
             .flex(Flex::Center)
             .split(block.inner(area));
-        let paragraphs = self
-            .ongoing
+        let paragraphs = ongoing
             .iter()
             .map(|(k, v)| {
                 (

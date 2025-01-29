@@ -1,3 +1,5 @@
+use std::sync::{Arc, Mutex};
+
 use sysinfo::System;
 
 use ratatui::{
@@ -7,8 +9,13 @@ use ratatui::{
     symbols,
     widgets::{Axis, Chart, Dataset, GraphType, Widget, WidgetRef},
 };
+// use tokio::sync::Mutex;
+
+use crate::services::event_bus::EventBus;
 
 pub struct HardwareUsageWidget {
+    event_bus: Arc<Mutex<EventBus>>,
+
     system: System,
     memory: Vec<f64>,
     cpu: Vec<f64>,
@@ -17,8 +24,9 @@ pub struct HardwareUsageWidget {
 }
 
 impl HardwareUsageWidget {
-    pub fn new() -> Self {
+    pub fn new(event_bus: Arc<Mutex<EventBus>>) -> Self {
         Self {
+            event_bus,
             system: System::new_all(),
             memory: vec![],
             cpu: vec![],
