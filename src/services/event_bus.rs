@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 
+type Callback = dyn Fn(Vec<u8>) + Send + 'static;
+
 pub struct EventBus {
-    subscribers: HashMap<String, Vec<(i32, Box<dyn Fn(Vec<u8>) + Send>)>>,
+    subscribers: HashMap<String, Vec<(i32, Box<Callback>)>>,
 }
 
 impl EventBus {
