@@ -21,7 +21,7 @@ pub type Messages = Arc<Mutex<ActiveMessages>>;
 const DEFAULT_STATUS_TITLE: &str = "All good!";
 const DEFAULT_STATUS_DESC: &str = "Nothing happening";
 
-const CLEANUP_INTERVAL: u8 = 2;
+const CLEANUP_INTERVAL: u8 = 3;
 
 pub struct CurrentStatusController {
     pub active_messages: Messages,
