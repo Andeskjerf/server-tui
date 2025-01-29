@@ -54,16 +54,10 @@ impl EventBusMessage {
                     .collect::<Vec<String>>();
 
                 let field_type = EventFieldType::from_string(&split[0]);
-                let value = match field_type {
-                    EventFieldType::Description => split[1].clone().into_bytes(),
-                    EventFieldType::Memory | EventFieldType::Cpu => split[1]
-                        .trim_matches(|c| c == '[' || c == ']')
-                        .split(',')
-                        .filter_map(|s| s.trim().parse::<u8>().ok())
-                        .collect(),
-                };
-
-                acc.insert(EventFieldType::from_string(&split[0]), value);
+                acc.insert(
+                    field_type.clone(),
+                    EventBusMessage::string_to_bytes(field_type, split[1].clone()),
+                );
                 acc
             },
         );
@@ -130,5 +124,16 @@ impl EventBusMessage {
         fields: Vec<(EventFieldType, Vec<u8>)>,
     ) -> Option<HashMap<EventFieldType, Vec<u8>>> {
         Some(fields.into_iter().collect())
+    }
+
+    fn string_to_bytes(field_type: EventFieldType, input: String) -> Vec<u8> {
+        match field_type {
+            EventFieldType::Description => input.into_bytes(),
+            EventFieldType::Memory | EventFieldType::Cpu => input
+                .trim_matches(|c| c == '[' || c == ']')
+                .split(',')
+                .filter_map(|s| s.trim().parse::<u8>().ok())
+                .collect(),
+        }
     }
 }
