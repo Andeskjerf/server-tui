@@ -5,14 +5,16 @@ use std::{
     time::Duration,
 };
 
-use crate::services::{event_bus::EventBus, process_watcher};
+use crate::{
+    models::{event_bus_message::EventBusMessage, event_type::EventType},
+    services::{event_bus::EventBus, process_watcher, socket},
+};
 
-pub type ActiveMessages = HashMap<String, (String, i64)>;
+pub type ActiveMessages = HashMap<String, EventBusMessage>;
 pub type Messages = Arc<Mutex<ActiveMessages>>;
 
 const DEFAULT_STATUS_TITLE: &str = "All good!";
 const DEFAULT_STATUS_DESC: &str = "Nothing happening";
-const STATUS_DEFAULT_DESC: &str = "Running";
 
 const CLEANUP_INTERVAL: u8 = 2;
 
@@ -29,12 +31,19 @@ impl CurrentStatusController {
     }
 
     fn subscribe(event_bus: Arc<Mutex<EventBus>>, active_messages: Messages) {
-        event_bus
-            .lock()
-            .unwrap()
-            .subscribe(process_watcher::EVENT_TOPIC, move |data| {
-                CurrentStatusController::on_event(Arc::clone(&active_messages), data);
-            });
+        let mut lock = event_bus.lock().unwrap();
+        let active_messages_1 = Arc::clone(&active_messages);
+        let active_messages_2 = Arc::clone(&active_messages);
+
+        // watch processes
+        lock.subscribe(process_watcher::EVENT_TOPIC, move |data| {
+            CurrentStatusController::on_event(Arc::clone(&active_messages_1), data);
+        });
+
+        // watch messages on socket
+        lock.subscribe(socket::EVENT_TOPIC, move |data| {
+            CurrentStatusController::on_event(Arc::clone(&active_messages_2), data);
+        });
     }
 
     fn cleanup_task(active_messages: Messages) {
@@ -42,19 +51,24 @@ impl CurrentStatusController {
             loop {
                 let mut lock = active_messages.lock().unwrap();
                 let now = chrono::Utc::now().timestamp();
-                (*lock).clone().into_iter().for_each(|(key, (_, ts))| {
-                    if key == DEFAULT_STATUS_TITLE {
+                (*lock).clone().into_iter().for_each(|(key, msg)| {
+                    // don't delete socket messages, instead wait for a explicit message
+                    if key == DEFAULT_STATUS_TITLE || *msg.event_type() == EventType::SOCKET {
                         return;
                     }
 
-                    if now - ts >= CLEANUP_INTERVAL as i64 {
+                    if now - msg.ts() >= CLEANUP_INTERVAL as i64 {
                         (*lock).remove(&key);
                     }
                 });
                 if lock.is_empty() {
                     lock.insert(
                         DEFAULT_STATUS_TITLE.to_string(),
-                        (DEFAULT_STATUS_DESC.to_string(), 0),
+                        EventBusMessage::new(
+                            DEFAULT_STATUS_TITLE,
+                            DEFAULT_STATUS_DESC,
+                            EventType::PROCESS,
+                        ),
                     );
                 }
                 drop(lock);
@@ -64,18 +78,13 @@ impl CurrentStatusController {
     }
 
     fn on_event(active_messages: Messages, data: Vec<u8>) {
-        let decoded = String::from_utf8(data).expect("unable to decode data");
+        let msg = EventBusMessage::from_bytes(data);
+
         let mut lock = active_messages.lock().unwrap();
         if lock.len() == 1 && lock.get(DEFAULT_STATUS_TITLE).is_some() {
             lock.remove(DEFAULT_STATUS_TITLE);
         }
-        lock.insert(
-            decoded,
-            (
-                STATUS_DEFAULT_DESC.to_string(),
-                chrono::Utc::now().timestamp(),
-            ),
-        );
+        lock.insert(msg.title().to_string(), msg);
     }
 
     pub fn get_message_lock(&self) -> MutexGuard<ActiveMessages> {

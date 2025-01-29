@@ -4,7 +4,10 @@ use std::{
     time::Duration,
 };
 
-use crate::traits::runnable::Runnable;
+use crate::{
+    models::{event_bus_message::EventBusMessage, event_type::EventType},
+    traits::runnable::Runnable,
+};
 use sysinfo::{ProcessRefreshKind, RefreshKind, System};
 
 use super::event_bus::EventBus;
@@ -39,10 +42,10 @@ impl ProcessWatcher {
             for process in (*lock).processes().values() {
                 let name = process.name().to_str().unwrap().to_lowercase();
                 if name.contains(&elem.to_lowercase()) {
-                    event_bus
-                        .lock()
-                        .unwrap()
-                        .publish(EVENT_TOPIC, elem.as_bytes().to_vec());
+                    event_bus.lock().unwrap().publish(
+                        EVENT_TOPIC,
+                        EventBusMessage::new(elem, "Running", EventType::PROCESS).format_bytes(),
+                    );
                     break;
                 }
             }

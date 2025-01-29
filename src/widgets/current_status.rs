@@ -38,12 +38,12 @@ impl WidgetRef for CurrentStatusWidget {
                 .split(block.inner(area));
         let paragraphs = active_messages
             .iter()
-            .map(|(k, v)| {
+            .map(|(_, v)| {
                 (
-                    Paragraph::new(k.clone())
+                    Paragraph::new(v.title())
                         .bold()
                         .alignment(Alignment::Center),
-                    Paragraph::new(v.0.clone()).alignment(Alignment::Center),
+                    Paragraph::new(v.description()).alignment(Alignment::Center),
                 )
             })
             .collect::<Vec<(Paragraph, Paragraph)>>();
