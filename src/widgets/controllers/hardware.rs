@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex, MutexGuard};
 
-use log::{info, trace};
+use log::trace;
 
 use crate::{
     models::{event_bus_field_type::EventFieldType, event_bus_message::EventBusMessage},
