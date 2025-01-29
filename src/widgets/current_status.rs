@@ -30,8 +30,8 @@ impl CurrentStatusWidget {
 impl WidgetRef for CurrentStatusWidget {
     fn render_ref(&self, area: Rect, buf: &mut Buffer) {
         let block = Block::bordered().title_bottom(Line::from(" Status ").red().bold());
-
         let active_messages = self.controller.get_message_lock();
+
         let layout =
             utils::layout::make_layout(Direction::Horizontal, active_messages.len() as u16)
                 .flex(Flex::Center)
@@ -51,12 +51,13 @@ impl WidgetRef for CurrentStatusWidget {
         (0..paragraphs.len()).for_each(|i| {
             let sub_layout = utils::layout::make_layout(Direction::Vertical, 2)
                 .constraints(vec![Constraint::Max(1); 2])
-                .flex(Flex::Center);
-            let areas: [Rect; 2] = sub_layout.areas(layout[i]);
+                .flex(Flex::Center)
+                .split(layout[i]);
+
             if let Some(elems) = paragraphs.get(i) {
                 let elems = elems.clone();
-                elems.0.render(areas[0], buf);
-                elems.1.render(areas[1], buf);
+                elems.0.render(sub_layout[0], buf);
+                elems.1.render(sub_layout[1], buf);
             }
         });
 
