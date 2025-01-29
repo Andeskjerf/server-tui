@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
+use std::thread::sleep;
+use std::time::Duration;
 
 use ratatui::layout::{Alignment, Constraint, Direction, Flex};
 use ratatui::text::Line;
@@ -10,65 +12,75 @@ use ratatui::{
     style::Stylize,
     widgets::{Block, Widget, WidgetRef},
 };
-// use tokio::sync::Mutex;
 
 use crate::services::event_bus::EventBus;
 use crate::utils;
 
+type Messages = Arc<Mutex<HashMap<String, (String, i64)>>>;
+
 pub struct CurrentStatusWidget {
-    pub event_bus: Arc<Mutex<EventBus>>,
-    pub ongoing: Arc<Mutex<HashMap<String, String>>>,
+    pub active_messages: Messages,
 }
 
 impl CurrentStatusWidget {
     pub async fn new(event_bus: Arc<Mutex<EventBus>>) -> Self {
-        let widget = Self {
-            event_bus,
-            ongoing: Arc::new(Mutex::new(HashMap::new())),
-        };
-
-        widget
-            .ongoing
-            .lock()
-            .unwrap()
-            .insert("All good!".to_string(), "Nothing happening".to_string());
-
-        {
-            let ongoing = Arc::clone(&widget.ongoing);
-            widget
-                .event_bus
-                .lock()
-                .unwrap()
-                .subscribe("process_watcher", move |data| {
-                    CurrentStatusWidget::on_event(Arc::clone(&ongoing), data);
-                });
-        }
-
-        widget
+        let active_messages = Arc::new(Mutex::new(HashMap::new()));
+        CurrentStatusWidget::cleanup_task(Arc::clone(&active_messages));
+        CurrentStatusWidget::subscribe(Arc::clone(&event_bus), Arc::clone(&active_messages));
+        Self { active_messages }
     }
 
-    async fn on_event(ongoing: Arc<Mutex<HashMap<String, String>>>, data: Vec<u8>) {
-        let decoded = String::from_utf8(data).expect("unable to decode data");
-        let split = decoded.split(',').collect::<Vec<&str>>();
-        let mut lock = ongoing.lock().unwrap();
-        match split[0] {
-            "rm" => {
-                lock.remove(split[1]);
+    fn subscribe(event_bus: Arc<Mutex<EventBus>>, active_messages: Messages) {
+        event_bus
+            .lock()
+            .unwrap()
+            .subscribe("process_watcher", move |data| {
+                CurrentStatusWidget::on_event(Arc::clone(&active_messages), data);
+            });
+    }
+
+    fn cleanup_task(active_messages: Messages) {
+        const CLEANUP_INTERVAL: u8 = 2;
+        tokio::spawn(async move {
+            loop {
+                let mut lock = active_messages.lock().unwrap();
+                let now = chrono::Utc::now().timestamp();
+                (*lock).clone().into_iter().for_each(|(key, (_, ts))| {
+                    if key == "All good!" {
+                        return;
+                    }
+
+                    if now - ts >= CLEANUP_INTERVAL as i64 {
+                        (*lock).remove(&key);
+                    }
+                });
+                if lock.is_empty() {
+                    lock.insert(
+                        "All good!".to_string(),
+                        ("Nothing happening".to_string(), 0),
+                    );
+                }
+                drop(lock);
+                sleep(Duration::from_millis(100));
             }
+        });
+    }
+
+    fn on_event(active_messages: Messages, data: Vec<u8>) {
+        let binding = String::from_utf8(data).expect("unable to decode data");
+        let decoded = binding.split(',').collect::<Vec<&str>>();
+        let mut lock = active_messages.lock().unwrap();
+        match decoded[0] {
             "add" => {
                 if lock.len() == 1 && lock.get("All good!").is_some() {
                     lock.remove("All good!");
                 }
                 lock.insert(
-                    split[1].to_string(),
-                    "Update from ProcessWatcher".to_string(),
+                    decoded[1].to_string(),
+                    ("Running".to_string(), chrono::Utc::now().timestamp()),
                 );
             }
             _ => println!("invalid command"),
-        }
-
-        if lock.is_empty() {
-            lock.insert("All good!".to_string(), "Nothing happening".to_string());
         }
     }
 }
@@ -77,18 +89,19 @@ impl WidgetRef for CurrentStatusWidget {
     fn render_ref(&self, area: Rect, buf: &mut Buffer) {
         let block = Block::bordered().title_bottom(Line::from(" Status ").red().bold());
 
-        let ongoing = self.ongoing.lock().unwrap();
-        let layout = utils::layout::make_layout(Direction::Horizontal, ongoing.len() as u16)
-            .flex(Flex::Center)
-            .split(block.inner(area));
-        let paragraphs = ongoing
+        let active_messages = self.active_messages.lock().unwrap();
+        let layout =
+            utils::layout::make_layout(Direction::Horizontal, active_messages.len() as u16)
+                .flex(Flex::Center)
+                .split(block.inner(area));
+        let paragraphs = active_messages
             .iter()
             .map(|(k, v)| {
                 (
                     Paragraph::new(k.clone())
                         .bold()
                         .alignment(Alignment::Center),
-                    Paragraph::new(v.clone()).alignment(Alignment::Center),
+                    Paragraph::new(v.0.clone()).alignment(Alignment::Center),
                 )
             })
             .collect::<Vec<(Paragraph, Paragraph)>>();
