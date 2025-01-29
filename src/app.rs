@@ -16,14 +16,12 @@ use crate::{
     utils,
     widgets::{
         current_status::CurrentStatusWidget, datetime::DateTimeWidget,
-        hardware::HardwareUsageWidget, journalctl::LogWidget, podman::PodmanWidget,
-        systemctl_stats::SystemctlWidget,
+        hardware::HardwareUsageWidget, podman::PodmanWidget, systemctl_stats::SystemctlWidget,
     },
 };
 
 pub struct App {
     terminal: DefaultTerminal,
-    event_bus: Arc<Mutex<EventBus>>,
     hw_usage: HardwareUsageWidget,
     status: CurrentStatusWidget,
     datetime: DateTimeWidget,
@@ -38,7 +36,6 @@ impl App {
         terminal.clear()?;
         Ok(Self {
             terminal,
-            event_bus: Arc::clone(&event_bus),
             hw_usage: HardwareUsageWidget::new(Arc::clone(&event_bus)),
             status: CurrentStatusWidget::new(Arc::clone(&event_bus)).await,
             datetime: DateTimeWidget::new(Arc::clone(&event_bus)),
@@ -49,7 +46,6 @@ impl App {
     pub async fn run(&mut self) -> io::Result<()> {
         loop {
             // self.logs.poll();
-            // self.hw_usage.poll_usage();
 
             self.draw()?;
 
