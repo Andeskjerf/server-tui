@@ -1,12 +1,6 @@
-use std::process::Command;
-
 use ratatui::text::Line;
-use ratatui::{
-    buffer::Buffer,
-    layout::{Constraint, Layout, Rect},
-    style::{Style, Stylize},
-    widgets::{Block, Paragraph, Widget, WidgetRef},
-};
+use ratatui::widgets::{Block, Widget};
+use ratatui::{buffer::Buffer, layout::Rect, style::Stylize, widgets::WidgetRef};
 
 pub struct DisksWidget {}
 
