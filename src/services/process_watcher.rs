@@ -38,16 +38,30 @@ impl ProcessWatcher {
     ) {
         let mut lock = system.lock().unwrap();
         (*lock).refresh_processes(sysinfo::ProcessesToUpdate::All, true);
-        for elem in to_watch.lock().unwrap().iter() {
-            for process in (*lock).processes().values() {
-                let name = process.name().to_str().unwrap().to_lowercase();
-                if name.contains(&elem.to_lowercase()) {
-                    event_bus.lock().unwrap().publish(
-                        EVENT_TOPIC,
-                        EventBusMessage::new(elem, "Running", EventType::PROCESS).format_bytes(),
-                    );
-                    break;
-                }
+        let mut count_found = 0;
+        for process in (*lock).processes().values() {
+            let watch_lock = to_watch.lock().unwrap();
+            if count_found >= watch_lock.len() {
+                break;
+            }
+
+            let name = process.name().to_str().unwrap().to_lowercase();
+            let pos = watch_lock
+                .iter()
+                .position(|elem| name.contains(&elem.to_lowercase()));
+
+            if pos.is_some() {
+                let pos = pos.unwrap();
+                event_bus.lock().unwrap().publish(
+                    EVENT_TOPIC,
+                    EventBusMessage::new(
+                        watch_lock.get(pos).unwrap(),
+                        "Running",
+                        EventType::PROCESS,
+                    )
+                    .format_bytes(),
+                );
+                count_found += 1;
             }
         }
     }
