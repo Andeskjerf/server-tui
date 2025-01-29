@@ -11,6 +11,7 @@ use crate::{
     },
     traits::runnable::Runnable,
 };
+use log::{info, trace};
 use sysinfo::{ProcessRefreshKind, RefreshKind, System};
 
 use super::event_bus::EventBus;
@@ -53,17 +54,16 @@ impl ProcessWatcher {
                 .iter()
                 .position(|elem| name.contains(&elem.to_lowercase()));
 
+            let bytes = "Running".as_bytes().to_vec();
             if pos.is_some() {
+                trace!("before send: {:?}", bytes);
                 let pos = pos.unwrap();
                 event_bus.lock().unwrap().publish(
                     EVENT_TOPIC,
                     EventBusMessage::new(
                         watch_lock.get(pos).unwrap(),
                         EventType::Process,
-                        Some(vec![(
-                            EventFieldType::Description,
-                            "Running".as_bytes().to_vec(),
-                        )]),
+                        Some(vec![(EventFieldType::Description, bytes)]),
                     )
                     .format_bytes(),
                 );

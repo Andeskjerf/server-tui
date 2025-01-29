@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use log::info;
+use log::{info, trace};
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
@@ -29,19 +29,19 @@ impl WidgetRef for HardwareUsageWidget {
     fn render_ref(&self, area: Rect, buf: &mut Buffer) {
         let mut cpu_data: Vec<(f64, f64)> = vec![];
         let mut ram_data: Vec<(f64, f64)> = vec![];
-        info!("history: {}", self.controller.history as usize);
+        trace!("history: {}", self.controller.history as usize);
         for i in 0..=self.controller.history as usize {
             // break early if data hasn't been polled for that long
             if i + 1 > self.controller.cpu_lock().len() {
                 break;
             }
-            info!("printing");
+            trace!("printing");
 
             cpu_data.push((i as f64, self.controller.cpu_lock()[i]));
             ram_data.push((i as f64, self.controller.ram_lock()[i]));
         }
-        info!("len cpu: {}", cpu_data.len());
-        info!("len ram: {}", ram_data.len());
+        trace!("len cpu: {}", cpu_data.len());
+        trace!("len ram: {}", ram_data.len());
 
         let datasets = vec![
             Dataset::default()

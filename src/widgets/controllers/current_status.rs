@@ -5,6 +5,8 @@ use std::{
     time::Duration,
 };
 
+use log::{info, trace};
+
 use crate::{
     models::{
         event_bus_field_type::EventFieldType, event_bus_message::EventBusMessage,
@@ -86,6 +88,7 @@ impl CurrentStatusController {
 
     fn on_event(active_messages: Messages, data: Vec<u8>) {
         let msg = EventBusMessage::from_bytes(data);
+        trace!("CurrentStatusController: on_event: {:?}", msg);
 
         let mut lock = active_messages.lock().unwrap();
         if lock.len() == 1 && lock.get(DEFAULT_STATUS_TITLE).is_some() {
