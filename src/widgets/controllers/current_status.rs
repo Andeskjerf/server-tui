@@ -53,6 +53,7 @@ impl CurrentStatusController {
                 let now = chrono::Utc::now().timestamp();
                 (*lock).clone().into_iter().for_each(|(key, msg)| {
                     // don't delete socket messages, instead wait for a explicit message
+                    // we also don't want to remove the default status message
                     if key == DEFAULT_STATUS_TITLE || *msg.event_type() == EventType::Socket {
                         return;
                     }
@@ -85,7 +86,7 @@ impl CurrentStatusController {
             lock.remove(DEFAULT_STATUS_TITLE);
         }
 
-        // remove if the message says it's done
+        // remove if the message says it's SOCKET_DONE_TEXT and it's a socket
         if *msg.event_type() == EventType::Socket
             && msg.description().to_lowercase() == socket::SOCKET_DONE_TEXT
             && lock.contains_key(msg.title())
