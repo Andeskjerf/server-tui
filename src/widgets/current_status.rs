@@ -44,7 +44,7 @@ impl WidgetRef for CurrentStatusWidget {
                     Paragraph::new(v.title())
                         .bold()
                         .alignment(Alignment::Center),
-                    Paragraph::new(v.get_field(EventFieldType::Description))
+                    Paragraph::new(v.get_field_string(EventFieldType::Description))
                         .alignment(Alignment::Center),
                 )
             })

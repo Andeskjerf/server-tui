@@ -60,7 +60,10 @@ impl ProcessWatcher {
                     EventBusMessage::new(
                         watch_lock.get(pos).unwrap(),
                         EventType::Process,
-                        Some(vec![(EventFieldType::Description, "Running")]),
+                        Some(vec![(
+                            EventFieldType::Description,
+                            "Running".as_bytes().to_vec(),
+                        )]),
                     )
                     .format_bytes(),
                 );

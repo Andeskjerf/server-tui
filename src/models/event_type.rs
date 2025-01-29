@@ -1,9 +1,10 @@
 use std::fmt::Display;
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub enum EventType {
     Socket = 0,
     Process = 1,
+    HWusage = 2,
 }
 
 impl EventType {
@@ -11,7 +12,8 @@ impl EventType {
         match data {
             0 => EventType::Socket,
             1 => EventType::Process,
-            2_u8..=u8::MAX => panic!("invalid event"),
+            2 => EventType::HWusage,
+            3_u8..=u8::MAX => panic!("invalid event"),
         }
     }
 
@@ -19,6 +21,7 @@ impl EventType {
         match self {
             EventType::Socket => 0,
             EventType::Process => 1,
+            EventType::HWusage => 2,
         }
     }
 }

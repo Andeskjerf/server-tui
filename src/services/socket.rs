@@ -58,7 +58,7 @@ impl SocketService {
                 EventBusMessage::new(
                     &msg.title,
                     EventType::Socket,
-                    Some(vec![(EventFieldType::Description, &msg.status)]),
+                    Some(vec![(EventFieldType::Description, msg.status.into_bytes())]),
                 )
                 .format_bytes(),
             );

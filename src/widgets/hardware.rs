@@ -1,7 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use sysinfo::System;
-
+use log::info;
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
@@ -9,43 +8,19 @@ use ratatui::{
     symbols,
     widgets::{Axis, Chart, Dataset, GraphType, Widget, WidgetRef},
 };
-// use tokio::sync::Mutex;
 
 use crate::services::event_bus::EventBus;
 
+use super::controllers::hardware::HardwareUsageController;
+
 pub struct HardwareUsageWidget {
-    event_bus: Arc<Mutex<EventBus>>,
-
-    system: System,
-    memory: Vec<f64>,
-    cpu: Vec<f64>,
-
-    history: f64,
+    controller: HardwareUsageController,
 }
 
 impl HardwareUsageWidget {
     pub fn new(event_bus: Arc<Mutex<EventBus>>) -> Self {
         Self {
-            event_bus,
-            system: System::new_all(),
-            memory: vec![],
-            cpu: vec![],
-            history: 100.0,
-        }
-    }
-
-    pub fn poll_usage(&mut self) {
-        self.system.refresh_all();
-
-        let memory_percentage =
-            (self.system.used_memory() as f64 / self.system.total_memory() as f64) * 100.0;
-        self.cpu.push(self.system.global_cpu_usage() as f64);
-        self.memory.push(memory_percentage);
-
-        // also remove from cpu, no need to check since both fill at the same rate
-        if self.memory.len() > self.history as usize {
-            self.memory.remove(0);
-            self.cpu.remove(0);
+            controller: HardwareUsageController::new(event_bus),
         }
     }
 }
@@ -54,15 +29,19 @@ impl WidgetRef for HardwareUsageWidget {
     fn render_ref(&self, area: Rect, buf: &mut Buffer) {
         let mut cpu_data: Vec<(f64, f64)> = vec![];
         let mut ram_data: Vec<(f64, f64)> = vec![];
-        for i in 0..=self.history as usize {
+        info!("history: {}", self.controller.history as usize);
+        for i in 0..=self.controller.history as usize {
             // break early if data hasn't been polled for that long
-            if i + 1 > self.cpu.len() {
+            if i + 1 > self.controller.cpu_lock().len() {
                 break;
             }
+            info!("printing");
 
-            cpu_data.push((i as f64, self.cpu[i]));
-            ram_data.push((i as f64, self.memory[i]));
+            cpu_data.push((i as f64, self.controller.cpu_lock()[i]));
+            ram_data.push((i as f64, self.controller.ram_lock()[i]));
         }
+        info!("len cpu: {}", cpu_data.len());
+        info!("len ram: {}", ram_data.len());
 
         let datasets = vec![
             Dataset::default()
@@ -81,7 +60,7 @@ impl WidgetRef for HardwareUsageWidget {
 
         let mut labels: Vec<String> = vec![];
         for i in 1..=2 {
-            labels.push((self.history / i as f64).to_string());
+            labels.push((self.controller.history / i as f64).to_string());
         }
         labels.push("0".to_owned());
         labels.reverse();
@@ -89,7 +68,7 @@ impl WidgetRef for HardwareUsageWidget {
         // Create the X axis and define its properties
         let x_axis = Axis::default()
             .style(Style::default().white())
-            .bounds([0.0, self.history])
+            .bounds([0.0, self.controller.history])
             .labels(labels);
 
         // Create the Y axis and define its properties

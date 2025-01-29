@@ -1,5 +1,6 @@
 pub mod controllers;
 pub mod current_status;
+pub mod datetime;
 pub mod disks;
 pub mod hardware;
 pub mod journalctl;

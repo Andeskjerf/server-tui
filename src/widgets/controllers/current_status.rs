@@ -71,7 +71,10 @@ impl CurrentStatusController {
                         EventBusMessage::new(
                             DEFAULT_STATUS_TITLE,
                             EventType::Process,
-                            Some(vec![(EventFieldType::Description, DEFAULT_STATUS_DESC)]),
+                            Some(vec![(
+                                EventFieldType::Description,
+                                DEFAULT_STATUS_DESC.as_bytes().to_vec(),
+                            )]),
                         ),
                     );
                 }
@@ -91,7 +94,10 @@ impl CurrentStatusController {
 
         // remove if the message says it's SOCKET_DONE_TEXT and it's a socket
         if *msg.event_type() == EventType::Socket
-            && msg.get_field(EventFieldType::Description).to_lowercase() == socket::SOCKET_DONE_TEXT
+            && msg
+                .get_field_string(EventFieldType::Description)
+                .to_lowercase()
+                == socket::SOCKET_DONE_TEXT
             && lock.contains_key(msg.title())
         {
             lock.remove(msg.title());
