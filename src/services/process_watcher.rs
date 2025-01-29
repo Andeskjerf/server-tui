@@ -4,10 +4,12 @@ use std::{
     time::Duration,
 };
 
-use crate::{traits::runnable::Runnable, widgets::controllers::current_status};
+use crate::traits::runnable::Runnable;
 use sysinfo::{ProcessRefreshKind, RefreshKind, System};
 
 use super::event_bus::EventBus;
+
+pub const EVENT_TOPIC: &str = "process_watcher";
 
 pub struct ProcessWatcher {
     system: Arc<Mutex<System>>,
@@ -40,7 +42,7 @@ impl ProcessWatcher {
                     event_bus
                         .lock()
                         .unwrap()
-                        .publish(current_status::EVENT_TOPIC, elem.as_bytes().to_vec());
+                        .publish(EVENT_TOPIC, elem.as_bytes().to_vec());
                     break;
                 }
             }

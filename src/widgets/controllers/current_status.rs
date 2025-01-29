@@ -5,7 +5,7 @@ use std::{
     time::Duration,
 };
 
-use crate::services::event_bus::EventBus;
+use crate::services::{event_bus::EventBus, process_watcher};
 
 pub type ActiveMessages = HashMap<String, (String, i64)>;
 pub type Messages = Arc<Mutex<ActiveMessages>>;
@@ -15,8 +15,6 @@ const DEFAULT_STATUS_DESC: &str = "Nothing happening";
 const STATUS_DEFAULT_DESC: &str = "Running";
 
 const CLEANUP_INTERVAL: u8 = 2;
-
-pub const EVENT_TOPIC: &str = "process_watcher";
 
 pub struct CurrentStatusController {
     pub active_messages: Messages,
@@ -34,7 +32,7 @@ impl CurrentStatusController {
         event_bus
             .lock()
             .unwrap()
-            .subscribe(EVENT_TOPIC, move |data| {
+            .subscribe(process_watcher::EVENT_TOPIC, move |data| {
                 CurrentStatusController::on_event(Arc::clone(&active_messages), data);
             });
     }
