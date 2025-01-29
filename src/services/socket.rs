@@ -53,7 +53,7 @@ impl SocketService {
 
             event_bus.lock().unwrap().publish(
                 EVENT_TOPIC,
-                EventBusMessage::new(&msg.title, &msg.status, EventType::SOCKET).format_bytes(),
+                EventBusMessage::new(&msg.title, &msg.status, EventType::Socket).format_bytes(),
             );
         }
     }

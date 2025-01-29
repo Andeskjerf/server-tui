@@ -57,7 +57,7 @@ impl ProcessWatcher {
                     EventBusMessage::new(
                         watch_lock.get(pos).unwrap(),
                         "Running",
-                        EventType::PROCESS,
+                        EventType::Process,
                     )
                     .format_bytes(),
                 );

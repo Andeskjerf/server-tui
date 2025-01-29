@@ -2,23 +2,23 @@ use std::fmt::Display;
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum EventType {
-    SOCKET = 0,
-    PROCESS = 1,
+    Socket = 0,
+    Process = 1,
 }
 
 impl EventType {
     pub fn from_u8(data: u8) -> Self {
         match data {
-            0 => EventType::SOCKET,
-            1 => EventType::PROCESS,
+            0 => EventType::Socket,
+            1 => EventType::Process,
             2_u8..=u8::MAX => panic!("invalid event"),
         }
     }
 
     pub fn get_value(&self) -> u8 {
         match self {
-            EventType::SOCKET => 0,
-            EventType::PROCESS => 1,
+            EventType::Socket => 0,
+            EventType::Process => 1,
         }
     }
 }
